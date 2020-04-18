@@ -135,10 +135,12 @@ loop do
     i = 0
 #    snaffles.each do |count|
     while i < snaffles.length
-        dist = Peermath.distance(my_wizards[0][2], my_wizards[0][3], snaffles[i][2], snaffles[i][3])
+#        dist = Peermath.distance(my_wizards[0][2], my_wizards[0][3], snaffles[i][2], snaffles[i][3])
+        dist = Peermath.distance(my_wizards[0][2], my_wizards[0][3], snaffles[i][2] + snaffles[i][4], snaffles[i][3] + snaffles[i][5])
+        # I add the snaffle velocity to the position to try get my wizard to not keep chasing 1 snaffle to the opp goal
         wiz0distances.push(dist)
 #        STDERR.puts "snaffle[#{i}] is #{dist} units away from my first wizard"
-        dist = Peermath.distance(my_wizards[1][2], my_wizards[1][3], snaffles[i][2], snaffles[i][3])
+        dist = Peermath.distance(my_wizards[1][2], my_wizards[1][3], snaffles[i][2] + snaffles[i][4], snaffles[i][3] + snaffles[i][5])
         wiz1distances.push(dist)
 #        STDERR.puts "snaffle[#{i}] is #{dist} units away from my second wizard"
         dist = Peermath.distance(opponent_wizards[0][2], opponent_wizards[0][3], snaffles[i][2], snaffles[i][3])
@@ -190,8 +192,10 @@ loop do
 #    end
     targetpos = [nil, nil]
     power = 0
-    if (wiz0distances[target1] <= 1.0)
-        goaltargety = Peermath.findgoaly(goalx, my_wizards[0])
+#    if (wiz0distances[target1] <= 1.0)
+    if (my_wizards[0][6] == 1)
+#        goaltargety = Peermath.findgoaly(goalx, my_wizards[0])
+        goaltargety = goaly
         printf("THROW %d %d %d\n", goalx, goaltargety, 500)
     else
         if (wiz0distances[target1] < 150)
@@ -212,11 +216,20 @@ loop do
     power = 0
     STDERR.puts "myscore=#{my_score}, opp_score=#{opponent_score}, remaining entities=#{entities}"
     STDERR.puts "math: #{my_score + 1} =?= #{entities - 6}"
-    if (my_magic > 50 && (my_score + 1 == entities - 6 || opponent_score + 1 == entities - 6))
+    if (my_magic >= 50 && (my_score + 1 == entities - 6 || opponent_score + 1 == entities - 6))
         STDERR.puts "magic time"
-        printf("WINGARDIUM %d %d %d %d\n", snaffles[target2][0], goalx, goaly, my_magic)
-    elsif (wiz1distances[target2] <= 1)
-        goaltargety = Peermath.findgoaly(goalx, my_wizards[0])
+        if (snaffles[target2][2] <= 100 && (snaffles[target2][3] < 1600 || snaffles[target2][3] > 5800))
+            printf("WINGARDIUM %d %d %d\n", snaffles[target2][0], goalx - 1, snaffles[target2][3], 10)
+        elsif (snaffles[target2]  >= 15900 && (snaffles[target2][3] < 1600 || snaffles[target2][3] > 5800))
+            printf("WINGARDIUM %d %d %d\n", snaffles[target2][0], goalx + 1, snaffles[target2][3], 10)
+        else
+            printf("WINGARDIUM %d %d %d %d\n", snaffles[target2][0], goalx, goaly, my_magic)
+        end
+#    elsif (wiz1distances[target2] <= 1)
+    elsif (my_wizards[1][6] == 1)
+#        goaltargety = Peermath.findgoaly(goalx, my_wizards[0])
+        goaltargety = goaly
+        STDERR.puts "wiz1distance to target2 = #{wiz1distances[target2]}"
         printf("THROW %d %d %d\n", goalx, goaltargety, 500)
     else
         if (wiz1distances[target2] < 150)
