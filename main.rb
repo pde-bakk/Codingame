@@ -19,18 +19,16 @@ module Peermath
     def self.distance(ax, ay, bx, by)
         Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay))
     end
-    def self.closest(xpos, ypos, array)
+    def self.closest(array)
+        dist = 100000
         index = 0
-        saveindex = 0;
-        result = 100000
-        newresult = 0
-        while (index < array.length)
-            newresult = Peermath.distance(xpos, ypos, array[index][2], array[index][3])
-            if (newresult < result)
-                result = newresult
+        saveindex = 0
+        while index < array.length
+            if array[index] < dist
                 saveindex = index
+                dist = array[index]
             end
-            i += 1
+            index += 1
         end
         return saveindex
     end
@@ -89,43 +87,72 @@ loop do
     wiz2distances = []
     wiz3distances = []
 
-    abc =  Peermath.distance(my_wizards[0][2], my_wizards[0][3], 50, 50)
- #   STDERR.puts abc.to_i
+#    abc =  Peermath.distance(my_wizards[0][2], my_wizards[0][3], 50, 50)
+#    STDERR.puts abc.to_i
     i = 0
 #    snaffles.each do |count|
     while i < snaffles.length
         dist = Peermath.distance(my_wizards[0][2], my_wizards[0][3], snaffles[i][2], snaffles[i][3])
         wiz0distances.push(dist)
-        STDERR.puts "snaffle[#{i}] is #{dist} units away from my first wizard"
+#        STDERR.puts "snaffle[#{i}] is #{dist} units away from my first wizard"
         dist = Peermath.distance(my_wizards[1][2], my_wizards[1][3], snaffles[i][2], snaffles[i][3])
         wiz1distances.push(dist)
-        STDERR.puts "snaffle[#{i}] is #{dist} units away from my second wizard"
+#        STDERR.puts "snaffle[#{i}] is #{dist} units away from my second wizard"
         dist = Peermath.distance(opponent_wizards[0][2], opponent_wizards[0][3], snaffles[i][2], snaffles[i][3])
         wiz2distances.push(dist)
-        STDERR.puts "snaffle[#{i}] is #{dist} units away from my opponents first wizard"
+#        STDERR.puts "snaffle[#{i}] is #{dist} units away from my opponents first wizard"
         dist = Peermath.distance(opponent_wizards[1][2], opponent_wizards[1][3], snaffles[i][2], snaffles[i][3])
         wiz3distances.push(dist)
-        STDERR.puts "snaffle[#{i}] is #{dist} units away from my opponents second wizard"
+#        STDERR.puts "snaffle[#{i}] is #{dist} units away from my opponents second wizard"
         i += 1
     end
     
-#    wiz0distances.each do |count|
-#        STDERR.puts "wiz #{count} dist=#{wiz0distances}"
-#    end
+    closest1st = Peermath.closest(wiz0distances)
+    closest2nd = Peermath.closest(wiz1distances)
+    if (closest1st == closest2nd)
+        STDERR.puts "wiz0dist[#{closest1st}]=#{wiz0distances[closest1st]}"
+        STDERR.puts "wiz1dist[#{closest2nd}]=#{wiz1distances[closest2nd]}"
+        if (wiz0distances[closest1st] > wiz1distances[closest2nd])
+            wiz0distances[closest1st] = 100000
+        else
+            wiz1distances[closest2nd] = 100000
+        end
+        closest1st = Peermath.closest(wiz0distances)
+        closest2nd = Peermath.closest(wiz1distances)
+        STDERR.puts "rework: wiz0dist[#{closest1st}]=#{wiz0distances[closest1st]}"
+        STDERR.puts "rework: wiz1dist[#{closest2nd}]=#{wiz1distances[closest2nd]}"
+
+    end
+    power = 0
+    if (wiz0distances[closest1st] <= 1.0)
+        printf("THROW %d %d %d\n", goalx, goaly, 500)
+    else
+        if (wiz0distances[closest1st] < 150)
+            power = wiz0distances[closest1st]
+        else
+            power = 150
+        end
+        STDERR.puts "wiz0: distance= #{wiz0distances[closest1st]} & power = #{power}"
+        printf("MOVE %d %d %d\n", snaffles[closest1st][2], snaffles[closest1st][3], power)
+        STDERR.printf("MOVE %d %d %d\n", snaffles[closest1st][2], snaffles[closest1st][3], power)
+    end
     
-    wiz0turnuse = 0
-    wiz1turnuse = 0
-    #first wizard:
-#    if wiz0distances[0] == 0 || wiz0distances[1] == 0 || wiz0distances[2] == 0 || wiz0distances[3] == 0 || wiz0distances[4] == 0
-        #THROW to opp goal
-#        printf("THROW %d %d %d\n", goalx, goaly, 500);
-#    else
-    
-    #findclosest
-    closest = Peermath.closest(my_wizards[0][2], my_wizards[0][3], snaffles)
-    STDERR.puts "closest = #{closest}"
+    power = 0
+    if (wiz1distances[closest2nd] <= 1)
+        printf("THROW %d %d %d\n", goalx, goaly, 500)
+    else
+        if (wiz1distances[closest2nd] < 150)
+            power = wiz1distances[closest2nd]
+        else
+            power = 150
+        end
+        STDERR.puts "wiz1: distance= #{wiz1distances[closest2nd]} & power = #{power}"
+        printf("MOVE %d %d %d\n", snaffles[closest2nd][2], snaffles[closest2nd][3], power)
+       STDERR.printf("MOVE %d %d %d\n", snaffles[closest2nd][2], snaffles[closest2nd][3], power)
+    end
+
         
-    2.times do
+#    2.times do
         
             
         # Write an action using puts
@@ -134,7 +161,7 @@ loop do
 
         # Edit this line to indicate the action for each wizard (0 ≤ thrust ≤ 150, 0 ≤ power ≤ 500, 0 ≤ magic ≤ 1500)
         # i.e.: "MOVE x y thrust" or "THROW x y power" or "WINGARDIUM id x y magic"
-        printf("MOVE 8000 3750 100\n")
+#        printf("MOVE 8000 3750 100\n")
 
-    end
+#    end
 end
