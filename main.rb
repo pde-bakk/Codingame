@@ -42,16 +42,30 @@ module Peermath
             keep = 0
         end
         while index < array.length
-            if id == 0 && array[index][2] + array[index][4] < keep #Xpos + Xveloc < keep
+            if id == 0 && array[index][2] + 2 * array[index][4] < keep #Xpos + Xveloc < keep
                 saveindex = index
-                keep = array[index][2] + array[index][4]
-            elsif id == 1 && array[index][2] + array[index][4] > keep
+                keep = array[index][2] + 2 * array[index][4]
+            elsif id == 1 && array[index][2] + 2 * array[index][4] > keep
                 saveindex = index
-                keep = array[index][2] + array[index][4]
+                keep = array[index][2] + 2 * array[index][4]
             end
             index += 1
         end
         return saveindex
+    end
+    
+    def self.ezscore(array, goalx)
+        i = 0
+        savei = -1
+        value = 800
+        while (i < array.length)
+            if (Peermath.abs(goalx - array[i][2]) <= value)
+                value = array[i][2]
+                savei = i
+            end
+            i += 1
+        end
+        return savei
     end
 
     def self.abs(nb)
@@ -73,6 +87,57 @@ module Peermath
         end
     end
     
+    def self.dotproduct(vec1, vec2)
+        vec1[0] * vec2[0] + vec1[1] * vec2[1]
+    end
+    
+    def self.getdirection(position, target, teammate, enemy, bludgers)
+        STDERR.puts " "
+        STDERR.puts "position=[#{position[2]}, #{position[3]}], target=[#{target[0]}, #{target[1]}]"
+        STDERR.puts "target=[#{target[0]}, #{target[1]}]"
+        direction = [target[0] - position[2], target[1] - position[3]]
+#        STDERR.puts "direction = [#{direction[0]}, #{direction[1]}]"
+        length = Math.sqrt(direction[0] * direction[0] + direction[1] * direction[1])
+#        STDERR.puts "length = #{length}"
+        direction = [direction[0] / length, direction[1] / length]
+#        STDERR.puts "normalized direction = #{direction[0]}, #{direction[1]}"
+        
+        i = 0
+        possible = 1
+        while i < 2 #its static: only 2 bludgers and 2 oppponents
+            STDERR.puts "bludger[#{i}] is at [#{bludgers[i][2]}. #{bludgers[i][3]}] with v=[#{bludgers[i][4]}, #{bludgers[i][5]}]"
+#            lvec = [bludgers[i][2] + bludgers[i][4] - position[2], bludgers[i][3] + bludgers[i][5] - position[3]]
+             lvec = [bludgers[i][2] - position[2], bludgers[i][3] - position[3]]
+#            STDERR.puts "lvec= [#{lvec[0]}, #{lvec[1]}]"
+            # doesnt take their movement into effect yet
+            dist = Math.sqrt(lvec[0] * lvec[0] + lvec[1] * lvec[1])
+            tca = Peermath.dotproduct(lvec, direction)
+            d2 = Peermath.dotproduct(lvec, lvec) - tca * tca
+#            STDERR.puts "lvec= [#{lvec[0]}, #{lvec[1]}]"
+#            STDERR.puts "tca = #{tca}, d2 = #{d2}, dist=#{dist}"
+            if tca > 0 && d2 < 300 * 300 && dist < 4000
+                STDERR.puts "bludger[#{i}] is in the way"
+                possible = 0
+            end
+
+            STDERR.puts "enemy[#{i}] is at [#{enemy[i][2]}, #{enemy[i][3]}] with v=[#{enemy[i][4]}. #{enemy[i][5]}]"
+#            lvec = [enemy[i][2] + enemy[i][4] - position[2], enemy[i][3] + enemy[i][5] - position[3]]
+             lvec = [enemy[i][2] - position[2], enemy[i][3] - position[3]]
+            # doesnt take their movement into effect yet
+            dist = Math.sqrt(lvec[0] * lvec[0] + lvec[1] * lvec[1])
+            tca = Peermath.dotproduct(lvec, direction)
+            d2 = Peermath.dotproduct(lvec, lvec) - tca * tca
+#            STDERR.puts "lvec = [#{lvec[0]}. #{lvec[1]}]"
+#            STDERR.puts "tca = #{tca}, d2 = #{d2}, dist = #{dist}"
+            if tca > 0 && d2 < 450 * 450 && dist < 4000
+                STDERR.puts "opponent-wizard[#{i}] is in the way"
+                possible = 0
+            end
+
+            i += 1
+        end
+        return possible
+    end
 end
 
         
@@ -80,6 +145,7 @@ end
 loop do
     my_score, my_magic = gets.split(" ").collect {|x| x.to_i}
     opponent_score, opponent_magic = gets.split(" ").collect {|x| x.to_i}
+    STDERR.puts "my_magic = #{my_magic} and their magic = #{opponent_magic}"
     entities = gets.to_i # number of entities still in game   
     
 #    entitystruct = Struct.new(:entity_id, :entity_type, :x, :y, :vx, :vy, :state)
@@ -118,7 +184,6 @@ loop do
             snaffles.push(entity)
         elsif (entity_type == "BLUDGER")
             bludgers.push(entity)
-            STDERR.puts "Bludger: id=#{entity_id}, pos=[#{x}, #{y}], vel=[#{vx}, #{vy}], state=#{state}"
         end
 
     end
@@ -190,29 +255,72 @@ loop do
 #        STDERR.puts "rework: wiz1dist[#{closest2nd}]=#{wiz1distances[closest2nd]}"
 #
 #    end
-    STDERR.puts "closesttogoal: x=#{snaffles[closesttogoal][2]}, vx=#{snaffles[closesttogoal][4]} & id=#{my_team_id}"
-    STDERR.puts "closesttogoal: y=#{snaffles[closesttogoal][3]}, vy=#{snaffles[closesttogoal][5]} & id=#{my_team_id}"
-    if (snaffles[closesttogoal][2] < 1500 && snaffles[closesttogoal][4] < 0 && my_team_id == 0 && snaffles[closesttogoal][3] + snaffles[closesttogoal][5] > 1750 && snaffles[closesttogoal][3] + snaffles[closesttogoal][5] < 5750)
+#    STDERR.puts "closesttogoal: x=#{snaffles[closesttogoal][2]}, vx=#{snaffles[closesttogoal][4]} & id=#{my_team_id}"
+#    STDERR.puts "closesttogoal: y=#{snaffles[closesttogoal][3]}, vy=#{snaffles[closesttogoal][5]} & id=#{my_team_id}"
+    closestxy = [snaffles[closesttogoal][2] + snaffles[closesttogoal][4], snaffles[closesttogoal][3] + snaffles[closesttogoal][5]]
+    STDERR.puts "closestxy=[#{closestxy[0]}, #{closestxy[1]}]"
+    STDERR.puts "x=#{snaffles[closesttogoal][2]}, vx=#{snaffles[closesttogoal][4]}"
+    STDERR.puts "speed = #{Math.sqrt(snaffles[closesttogoal][4] * snaffles[closesttogoal][4] + snaffles[closesttogoal][5] * snaffles[closesttogoal][5])}"
+#STDERR.puts "clos to goal: xy=[#{snaffles[closesttogoal][2]}, #{snaffles[closesttogoal][3]}] & velocity=[#{snaffles[closesttogoal][4]}, #{snaffles[closesttogoal][5]}] & pos+vel = [#{snaffles[closesttogoal][2] + snaffles[closesttogoal][4]}, #{snaffles[closesttogoal][3] + snaffles[closesttogoal][5]}] & teamid=#{my_team_id}, state=#{snaffles[closesttogoal][6]}"
+#    if (snaffles[closesttogoal][2] < 1500 && snaffles[closesttogoal][4] < -150 && my_team_id == 0 && snaffles[closesttogoal][3] + snaffles[closesttogoal][5] > 1750 && snaffles[closesttogoal][3] + snaffles[closesttogoal][5] < 5750 && snaffles[closesttogoal][6] == 0)
+#    elsif (snaffles[closesttogoal][2] > 15000 && snaffles[closesttogoal][4] > 150 && my_team_id == 1 && snaffles[closesttogoal][3] + snaffles[closesttogoal][5] > 1750 && snaffles[closesttogoal][3] + snaffles[closesttogoal][5] < 5750 && snaffles[closesttogoal][6] == 0)
+
+#    STDERR.puts "between?=#{closestxy[1].between?(1825, 5675)} & x+vx=#{snaffles[closesttogoal][2] + snaffles[closesttogoal][4]} <= 0 & state=#{snaffles[closesttogoal][6]} & my_team_id=#{my_team_id}"
+    if (my_team_id == 0 && closestxy[1].between?(1825, 5675) && snaffles[closesttogoal][2] + snaffles[closesttogoal][4] <= 1000 && snaffles[closesttogoal][6] == 0)
         lastditch = 1
         STDERR.puts "lastditch = 1, id=0"
-    elsif (snaffles[closesttogoal][2] > 15000 && snaffles[closesttogoal][4] > 0 && my_team_id == 1 && snaffles[closesttogoal][3] + snaffles[closesttogoal][5] > 1750 && snaffles[closesttogoal][3] + snaffles[closesttogoal][5] < 5750)
+    elsif (my_team_id == 1 && closestxy[1].between?(1825, 5675) && snaffles[closesttogoal][2] + snaffles[closesttogoal][4] >= 15000 && snaffles[closesttogoal][6] == 0)
         lastditch = 1
         STDERR.puts "lastditch = 1, id=1"
     else
         lastditch = 0
     end
     
-    targetpos = [nil, nil]
+    targetpos = [goalx, goaly]
+    targets = [[goalx, goaly], [goalx, goaly - 100], [goalx, goaly - 300], [goalx, goaly - 600], [goalx, goaly - 800], [goalx, goaly + 100], [goalx, goaly + 300], [goalx, goaly + 600], [goalx, goaly + 800], [Peermath.abs(goalx - 4000), 0], [Peermath.abs(goalx - 4000), 7500]]
+
     power = 0
+    ezscore = Peermath.ezscore(snaffles, goalx)
+
+
 #    if (wiz0distances[target1] <= 1.0)
-    if (my_magic >= 10 && lastditch == 1)
-        STDERR.puts "magic time"
-        printf("WINGARDIUM %d %d %d %d\n", snaffles[closesttogoal][0], my_wizards[1][2] + my_wizards[1][4], my_wizards[1][3] + my_wizards[1][5], 10)
-        STDERR.printf("WINGARDIUM %d %d %d %d\n", snaffles[closesttogoal][0], my_wizards[1][2] + my_wizards[1][4], my_wizards[1][3] + my_wizards[1][5], 10)
+    STDERR.puts "wiz1 distance to closest: #{wiz1distances[closesttogoal]} & wiz0: #{wiz0distances[closesttogoal]}"
+    if (my_magic >= 10 && lastditch == 1 && (wiz1distances[closesttogoal] > 1000 && wiz0distances[closesttogoal] > 1000))
+        STDERR.puts "magic time, last ditch effort to save"
+
+        t = 0
+#        STDERR.puts "t = 0"
+        while (t + 1 < targets.length && Peermath.getdirection(snaffles[closesttogoal], targets[t], my_wizards[0], opponent_wizards, bludgers) == 0)
+#            STDERR.puts "t=#{t}, tmax=#{targets.length}"
+            t += 1
+        end
+        power = Peermath.abs(snaffles[closesttogoal][4] / 25) + 10
+        STDERR.puts "power = #{power}"
+        if (power > my_magic)
+            power = my_magic
+        end
+        printf("WINGARDIUM %d %d %d %d\n", snaffles[closesttogoal][0], targets[t][0], targets[t][1], power)
+    elsif (my_magic >= 10 && ezscore >= 0 && snaffles[ezscore][3].between?(1900, 5600) && snaffles[ezscore][4] == 0 && snaffles[ezscore][6] == 0)
+        STDERR.puts "magic time, ezscore"
+        
+        printf("WINGARDIUM %d %d %d %d\n", snaffles[ezscore][0], goalx, snaffles[ezscore][3], 10)
     elsif (my_wizards[0][6] == 1)
-#        goaltargety = Peermath.findgoaly(goalx, my_wizards[0])
-        goaltargety = goaly
-        printf("THROW %d %d %d\n", goalx - my_wizards[0][4], goaltargety, 500)
+
+#        if (Peermath.abs(goalx - my_wizards[1][2]) < Peermath.abs(goalx - my_wizards[0][2]))
+#            newtar = [my_wizards[1][2], my_wizards[1][3]]
+#            targets.unshift(newtar)
+#        end
+        t = 0
+        STDERR.puts "t = 0"
+        while (t + 1 < targets.length && Peermath.getdirection(my_wizards[0], targets[t], my_wizards[1], opponent_wizards, bludgers) == 0)
+#            STDERR.puts "t=#{t}, tmax=#{targets.length}"
+            t += 1
+        end
+#        STDERR.puts " "
+#        STDERR.puts "wizard velocity=[#{my_wizards[0][4]}, #{my_wizards[0][5]}]"
+#        STDERR.puts "target=[#{targets[t][0]}, #{targets[t][1]}]"
+        printf("THROW %d %d %d\n", targets[t][0] - my_wizards[0][4], targets[t][1] - my_wizards[0][5], 500)
+        
     else
         if (wiz0distances[target1] < 150)
             power = wiz0distances[target1]
@@ -223,25 +331,52 @@ loop do
         targetpos[1] = snaffles[target1][3] + snaffles[target1][5]# - my_wizards[0][5]
         #targetpos = sn pole has a raffle.x + snaffle.vx - wizard.vx
         
-        STDERR.puts "wiz0: distance= #{wiz0distances[target1]} & power = #{power}"
-        STDERR.puts "wiz0: position= [#{my_wizards[0][2]}, #{my_wizards[0][3]}]"
+#        STDERR.puts "wiz0: distance= #{wiz0distances[target1]} & power = #{power}"
+#        STDERR.puts "wiz0: position= [#{my_wizards[0][2]}, #{my_wizards[0][3]}]"
         printf("MOVE %d %d %d\n", targetpos[0], targetpos[1], power)
-        STDERR.printf("MOVE %d %d %d\n", snaffles[target1][2], snaffles[target1][3], power)
     end
     
     power = 0
+    targetpos = [goalx, goaly]
+    targets = [[goalx, goaly], [goalx, goaly - 100], [goalx, goaly - 300], [goalx, goaly - 600], [goalx, goaly - 800], [goalx, goaly + 100], [goalx, goaly + 300], [goalx, goaly + 600], [goalx, goaly + 800], [Peermath.abs(goalx - my_wizards[1][2]), 0], [Peermath.abs(goalx - my_wizards[1][2]), 7500]]
+
 
     if (my_magic >= 40 && (2 * (my_score + 1) > my_score + opponent_score + entities - 6 || 2 * (opponent_score + 1) > my_score + opponent_score + entities - 6))
 #    if (my_magic >= 50 && (my_score + 1 == entities - 5 || opponent_score + 1 == entities - 5))
         STDERR.puts "magic time"
-        STDERR.printf("WINGARDIUM %d %d %d %d\n", snaffles[closesttogoal][0], goalx, goaly, my_magic)
-        printf("WINGARDIUM %d %d %d %d\n", snaffles[closesttogoal][0], goalx, goaly, my_magic)
+        
+        t = 0
+        while (t + 1 < targets.length && Peermath.getdirection(snaffles[closesttogoal], targets[t], my_wizards[0], opponent_wizards, bludgers) == 0)
+#            STDERR.puts "t=#{t}, tmax=#{targets.length}"
+            t += 1
+        end
+
+        printf("WINGARDIUM %d %d %d %d\n", snaffles[closesttogoal][0], targets[t][0], targets[t][1], my_magic)
 #    elsif (wiz1distances[target2] <= 1)
+    elsif (my_magic >= 99)
+        STDERR.puts "99 magic"
+
+        t = 0
+        while (t + 1 < targets.length && Peermath.getdirection(snaffles[closesttogoal], targets[t], my_wizards[0], opponent_wizards, bludgers) == 0)
+#            STDERR.puts "t=#{t}, tmax=#{targets.length}"
+            t += 1
+        end
+        printf("WINGARDIUM %d %d %d %d\n", snaffles[closesttogoal][0], targets[t][0], targets[t][1], 15)
     elsif (my_wizards[1][6] == 1)
-#        goaltargety = Peermath.findgoaly(goalx, my_wizards[0])
-        goaltargety = goaly
-        STDERR.puts "wiz1distance to target2 = #{wiz1distances[target2]}"
-        printf("THROW %d %d %d\n", goalx - my_wizards[1][4], goaltargety, 500)
+    
+#        if (Peermath.abs(goalx - my_wizards[0][2]) < Peermath.abs(goalx - my_wizards[1][2]))
+#            newtar = [my_wizards[0][2], my_wizards[0][3]]
+#            targets.push(newtar)
+#        end
+        t = 0
+        while (t + 1 < targets.length && Peermath.getdirection(my_wizards[1], targets[t], my_wizards[0], opponent_wizards, bludgers) == 0)
+#            STDERR.puts "t=#{t}, tmax=#{targets.length}"
+            t += 1
+        end
+
+#        STDERR.puts "wiz1distance to target2 = #{wiz1distances[target2]}"
+#        STDERR.puts "velocity=[#{my_wizards[1][4]}, #{my_wizards[1][5]}]"
+        printf("THROW %d %d %d\n", targets[t][0] - my_wizards[1][4], targets[t][1] - my_wizards[1][5], 500)
     else
         if (wiz1distances[target2] < 150)
             power = wiz1distances[target2]
@@ -252,10 +387,9 @@ loop do
         targetpos[1] = snaffles[target2][3] + snaffles[target2][5]# - my_wizards[1][5]
         #targetpos = snaffle.x + snaffle.vx - wizard.vx
 
-        STDERR.puts "wiz1: distance= #{wiz1distances[target2]} & power = #{power}"
-        STDERR.puts "wiz1: position= [#{my_wizards[1][2]}, #{my_wizards[1][3]}]"
+#        STDERR.puts "wiz1: distance= #{wiz1distances[target2]} & power = #{power}"
+#        STDERR.puts "wiz1: position= [#{my_wizards[1][2]}, #{my_wizards[1][3]}]"
         printf("MOVE %d %d %d\n", snaffles[target2][2], snaffles[target2][3], power)
-       STDERR.printf("MOVE %d %d %d\n", snaffles[target2][2], snaffles[target2][3], power)
     end
 
         
