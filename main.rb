@@ -7,6 +7,7 @@ STDOUT.sync = true # DO NOT REMOVE
 
 
 my_team_id = gets.to_i # if 0 you need to score on the right of the map, if 1 you need to score on the left
+turncount = 0
 
 if (my_team_id == 0)
     goalx = 16000
@@ -54,13 +55,34 @@ module Peermath
         return saveindex
     end
     
+    def self.spits(array, id) #my_team_id = gets.to_i # if 0 you need to score on the right of the map, if 1 you need to score on the left
+        index = 0
+        saveindex = 0
+        if id == 1
+            keep = 16000
+        else
+            keep = 0
+        end
+        while index < array.length
+            if id == 0 && array[index][2] + 2 * array[index][4] < keep #Xpos + Xveloc < keep
+                saveindex = index
+                keep = array[index][2] + 2 * array[index][4]
+            elsif id == 1 && array[index][2] + 2 * array[index][4] > keep
+                saveindex = index
+                keep = array[index][2] + 2 * array[index][4]
+            end
+            index += 1
+        end
+        return saveindex
+    end
+    
     def self.ezscore(array, goalx)
         i = 0
         savei = -1
         value = 800
         while (i < array.length)
-            if (Peermath.abs(goalx - array[i][2]) <= value)
-                value = array[i][2]
+            if (Peermath.abs(goalx - array[i][2]) < value)
+                value = Peermath.abs(goalx - array[i][2])
                 savei = i
             end
             i += 1
@@ -92,9 +114,9 @@ module Peermath
     end
     
     def self.getdirection(position, target, teammate, enemy, bludgers)
-        STDERR.puts " "
-        STDERR.puts "position=[#{position[2]}, #{position[3]}], target=[#{target[0]}, #{target[1]}]"
-        STDERR.puts "target=[#{target[0]}, #{target[1]}]"
+#        STDERR.puts " "
+#        STDERR.puts "position=[#{position[2]}, #{position[3]}], target=[#{target[0]}, #{target[1]}]"
+#        STDERR.puts "target=[#{target[0]}, #{target[1]}]"
         direction = [target[0] - position[2], target[1] - position[3]]
 #        STDERR.puts "direction = [#{direction[0]}, #{direction[1]}]"
         length = Math.sqrt(direction[0] * direction[0] + direction[1] * direction[1])
@@ -105,31 +127,29 @@ module Peermath
         i = 0
         possible = 1
         while i < 2 #its static: only 2 bludgers and 2 oppponents
-            STDERR.puts "bludger[#{i}] is at [#{bludgers[i][2]}. #{bludgers[i][3]}] with v=[#{bludgers[i][4]}, #{bludgers[i][5]}]"
-#            lvec = [bludgers[i][2] + bludgers[i][4] - position[2], bludgers[i][3] + bludgers[i][5] - position[3]]
-             lvec = [bludgers[i][2] - position[2], bludgers[i][3] - position[3]]
-#            STDERR.puts "lvec= [#{lvec[0]}, #{lvec[1]}]"
-            # doesnt take their movement into effect yet
+
+            STDERR.puts "bludger is at [#{bludgers[i][2]}, #{bludgers[i][3]}] with v = [#{bludgers[i][4]}, #{bludgers[i][5]}]"
+            lvec = [bludgers[i][2] - position[2], bludgers[i][3] - position[3]]
             dist = Math.sqrt(lvec[0] * lvec[0] + lvec[1] * lvec[1])
-            tca = Peermath.dotproduct(lvec, direction)
-            d2 = Peermath.dotproduct(lvec, lvec) - tca * tca
-#            STDERR.puts "lvec= [#{lvec[0]}, #{lvec[1]}]"
-#            STDERR.puts "tca = #{tca}, d2 = #{d2}, dist=#{dist}"
-            if tca > 0 && d2 < 300 * 300 && dist < 4000
+            d = Peermath.dotproduct(lvec, direction)
+            res = [position[2] + direction[0] * d, position[3] + direction[1] * d]
+            t = [res[0] - bludgers[i][2], res[1] - bludgers[i][3]]
+            tlen = Math.sqrt(t[0] * t[0] + t[1] * t[1])
+            STDERR.puts "d=#{d}, res=[#{res[0]}, #{res[1]}], t = [#{t[0]}, #{t[1]}], tlen = #{tlen}, dist to enemy=#{dist}"
+            if (tlen < 500 && dist < 4000 && d > 0)
                 STDERR.puts "bludger[#{i}] is in the way"
                 possible = 0
             end
 
-            STDERR.puts "enemy[#{i}] is at [#{enemy[i][2]}, #{enemy[i][3]}] with v=[#{enemy[i][4]}. #{enemy[i][5]}]"
-#            lvec = [enemy[i][2] + enemy[i][4] - position[2], enemy[i][3] + enemy[i][5] - position[3]]
-             lvec = [enemy[i][2] - position[2], enemy[i][3] - position[3]]
-            # doesnt take their movement into effect yet
+            STDERR.puts "opp wizard is at [#{enemy[i][2]}, #{enemy[i][3]}] with v = [#{enemy[i][4]}, #{enemy[i][5]}]"
+            lvec = [enemy[i][2] - position[2], enemy[i][3] - position[3]]
             dist = Math.sqrt(lvec[0] * lvec[0] + lvec[1] * lvec[1])
-            tca = Peermath.dotproduct(lvec, direction)
-            d2 = Peermath.dotproduct(lvec, lvec) - tca * tca
-#            STDERR.puts "lvec = [#{lvec[0]}. #{lvec[1]}]"
-#            STDERR.puts "tca = #{tca}, d2 = #{d2}, dist = #{dist}"
-            if tca > 0 && d2 < 450 * 450 && dist < 4000
+            d = Peermath.dotproduct(lvec, direction)
+            res = [position[2] + direction[0] * d, position[3] + direction[1] * d]
+            t = [res[0] - enemy[i][2], res[1] - enemy[i][3]]
+            tlen = Math.sqrt(t[0] * t[0] + t[1] * t[1])
+            STDERR.puts "d=#{d}, res=[#{res[0]}, #{res[1]}], t = [#{t[0]}, #{t[1]}], tlen = #{tlen}, dist to enemy=#{dist}"
+            if (tlen < 500 && dist < 4000 && d > 0)
                 STDERR.puts "opponent-wizard[#{i}] is in the way"
                 possible = 0
             end
@@ -147,7 +167,7 @@ loop do
     opponent_score, opponent_magic = gets.split(" ").collect {|x| x.to_i}
     STDERR.puts "my_magic = #{my_magic} and their magic = #{opponent_magic}"
     entities = gets.to_i # number of entities still in game   
-    
+    turncount += 1
 #    entitystruct = Struct.new(:entity_id, :entity_type, :x, :y, :vx, :vy, :state)
 #    entitystruct.class
 #    entity = entitystruct.new
@@ -217,8 +237,9 @@ loop do
     end
     
     target1 = Peermath.closest(wiz0distances)
-    target2 = Peermath.keeper(snaffles, my_team_id)
-    closesttogoal = target2
+#    target2 = Peermath.keeper(snaffles, my_team_id)
+    target2 = Peermath.closest(wiz1distances)
+    closesttogoal = Peermath.keeper(snaffles, my_team_id)
     
 #    STDERR.puts "target1 (closest to wiz0) = #{target1}"
 #    STDERR.puts "target2 (closest to goal) = #{target2}"
@@ -301,7 +322,8 @@ loop do
         end
         printf("WINGARDIUM %d %d %d %d\n", snaffles[closesttogoal][0], targets[t][0], targets[t][1], power)
     elsif (my_magic >= 10 && ezscore >= 0 && snaffles[ezscore][3].between?(1900, 5600) && snaffles[ezscore][4] == 0 && snaffles[ezscore][6] == 0)
-        STDERR.puts "magic time, ezscore"
+        STDERR.puts "magic time, ezscore=#{ezscore}"
+        STDERR.puts "ezscore pos=[#{snaffles[ezscore][2]}, #{snaffles[ezscore][3]}]"
         
         printf("WINGARDIUM %d %d %d %d\n", snaffles[ezscore][0], goalx, snaffles[ezscore][3], 10)
     elsif (my_wizards[0][6] == 1)
@@ -319,6 +341,8 @@ loop do
 #        STDERR.puts " "
 #        STDERR.puts "wizard velocity=[#{my_wizards[0][4]}, #{my_wizards[0][5]}]"
 #        STDERR.puts "target=[#{targets[t][0]}, #{targets[t][1]}]"
+        STDERR.puts "t=#{t}, target=[#{targets[t][0]}, #{targets[t][1]}], throw to [#{targets[t][0] - my_wizards[0][4]}, #{targets[t][1] - my_wizards[0][5]}]"
+
         printf("THROW %d %d %d\n", targets[t][0] - my_wizards[0][4], targets[t][1] - my_wizards[0][5], 500)
         
     else
@@ -338,12 +362,15 @@ loop do
     
     power = 0
     targetpos = [goalx, goaly]
-    targets = [[goalx, goaly], [goalx, goaly - 100], [goalx, goaly - 300], [goalx, goaly - 600], [goalx, goaly - 800], [goalx, goaly + 100], [goalx, goaly + 300], [goalx, goaly + 600], [goalx, goaly + 800], [Peermath.abs(goalx - my_wizards[1][2]), 0], [Peermath.abs(goalx - my_wizards[1][2]), 7500]]
-
-
-    if (my_magic >= 40 && (2 * (my_score + 1) > my_score + opponent_score + entities - 6 || 2 * (opponent_score + 1) > my_score + opponent_score + entities - 6))
+    targets = [[goalx, goaly], [goalx, goaly - 100], [goalx, goaly - 300], [goalx, goaly - 600], [goalx, goaly - 800], [goalx, goaly + 100], [goalx, goaly + 300], [goalx, goaly + 600], [goalx, goaly + 800], [Peermath.abs(goalx - 4000), 0], [Peermath.abs(goalx - 4000), 7500]]
+cond = 0
+    if (my_magic >= 15 && turncount > 194 && opponent_score >= my_score)
+        id = Peermath.spits(snaffles, goalx)
+        STDERR.puts "magic time, its turn #{turncount}"
+        printf("WINGARDIUM %d %d %d %d\n", snaffles[id][0], goalx, goaly, my_magic)
+    elsif (my_magic >= 40 && (2 * (my_score + 1) > my_score + opponent_score + entities - 6 || 2 * (opponent_score + 1) > my_score + opponent_score + entities - 6) && snaffles[closesttogoal][6] == 0 && cond == 1)
 #    if (my_magic >= 50 && (my_score + 1 == entities - 5 || opponent_score + 1 == entities - 5))
-        STDERR.puts "magic time"
+        STDERR.puts "magic time, gamepoint for either side"
         
         t = 0
         while (t + 1 < targets.length && Peermath.getdirection(snaffles[closesttogoal], targets[t], my_wizards[0], opponent_wizards, bludgers) == 0)
@@ -373,6 +400,7 @@ loop do
 #            STDERR.puts "t=#{t}, tmax=#{targets.length}"
             t += 1
         end
+        STDERR.puts "t=#{t}, target=[#{targets[t][0]}, #{targets[t][1]}], throw to [#{targets[t][0] - my_wizards[1][4]}, #{targets[t][1] - my_wizards[1][5]}]"
 
 #        STDERR.puts "wiz1distance to target2 = #{wiz1distances[target2]}"
 #        STDERR.puts "velocity=[#{my_wizards[1][4]}, #{my_wizards[1][5]}]"
