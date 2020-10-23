@@ -1,4 +1,5 @@
 STDOUT.sync = true # DO NOT REMOVE
+# Peer de Bakker
 include Math
 require 'benchmark'
 require 'time'
