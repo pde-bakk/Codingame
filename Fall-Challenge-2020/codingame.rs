@@ -1,3 +1,6 @@
+// Wanting to learn Rust, I decided to make my first bot for this challenge in Rust.
+// I later switched to C++.
+
 use std::io;
 use std::cmp::max;
 extern crate rand;
