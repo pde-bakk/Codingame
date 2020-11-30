@@ -1,3 +1,13 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <array>
+#include <cmath>
+#include <cstdlib>
+#include <algorithm>
+//#include <x86intrin.h> //AVX/SSE Extensions
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
 #pragma GCC optimize("O3")
 #pragma GCC optimize("inline")
 #pragma GCC optimize("omit-frame-pointer")
@@ -6,22 +16,17 @@
 #pragma GCC option("march=native","tune=native","no-zero-upper") //Enable AVX (this thing gives errors on my laptop with clang 11)
 #pragma GCC target("avx")  //Enable AVX
 #pragma GCC target "bmi2"
-#include <x86intrin.h> //AVX/SSE Extensions
-#include <iostream>
-#include <string>
-#include <vector>
-#include <array>
-#include <cstdlib>
-#include <algorithm>
-#include <chrono>
 using namespace std;
+#include <chrono>
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 inline long long currTimeMilli(const chrono::steady_clock::time_point& begin) { return chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - begin).count(); }
 inline long long currTimeMicro(const chrono::steady_clock::time_point& begin) { return chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - begin).count(); }
 inline long long currTimeNano(const chrono::steady_clock::time_point& begin) { return chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - begin).count(); }
+#pragma clang diagnostic pop
 size_t	g_turn = 0;
 int 	g_CastValueMultiplier;
-unsigned long long g_total = 0;
 enum Player {
 	ME,
 	BITCH
@@ -439,9 +444,8 @@ void	Setup(GameState& state, const chrono::steady_clock::time_point& begin) {
 			break;
 		}
 	}
+	cerr << "queue size is still " << Results.size() - i_Evaluated << "." << endl << endl;
 
-	g_total += Results.size();
-	cerr << "Checked " << Results.size() << " nodes this turn, averaging " << g_total / (g_turn + 1) << endl;
 	vector<Node>::const_iterator Max;
 	if (g_turn > 20 && (state.witches[BITCH].timesScored == 5 || state.witches[ME].timesScored == 5)) {// or i scored 5 times
 		Max = max_element(Results.begin(), Results.end(), FiveGoalsCompare);
@@ -453,7 +457,7 @@ void	Setup(GameState& state, const chrono::steady_clock::time_point& begin) {
 	}
 	else
 		Max = max_element(Results.begin(), Results.end());
-//	cerr << "After finding max element, timestamp is " << static_cast<double>(currTimeMicro(begin)) / 1000.0 << " ms.\n";
+	cerr << "After finding max element, timestamp is " << static_cast<double>(currTimeMicro(begin)) / 1000.0 << " ms.\n";
 	Max->TakeAction(true);
 	Results.clear();
 }
@@ -487,54 +491,4 @@ int main()
 	}
 }
 
-
-		}
-	}
-
-	g_total += Results.size();
-	cerr << "Checked " << Results.size() << " nodes this turn, averaging " << g_total / (g_turn + 1) << endl;
-	vector<Node>::const_iterator Max;
-	if (g_turn > 20 && (state.witches[BITCH].timesScored == 5 || state.witches[ME].timesScored == 5)) {// or i scored 5 times
-		Max = max_element(Results.begin(), Results.end(), FiveGoalsCompare);
-		cerr << "FiveGoalsCompare has been used\n";
-		if (Max == Results.begin()) {
-			cerr << "FiveGoalsCompare gives a bad sort" << endl;
-			Max = max_element(Results.begin(), Results.end());
-		}
-	}
-	else
-		Max = max_element(Results.begin(), Results.end());
-//	cerr << "After finding max element, timestamp is " << static_cast<double>(currTimeMicro(begin)) / 1000.0 << " ms.\n";
-	Max->TakeAction(true);
-	Results.clear();
-}
-
-#pragma ide diagnostic ignored "EndlessLoop"
-int main()
-{
-	g_Rest.actionType = REST;
-	g_Wait.actionType = WAIT;
-	int ScoreTable[2]{}, TimesScored[2]{};
-
-	while (true) {
-		int actionCount;
-		cin >> actionCount; cin.ignore();
-		GameState State;
-		State.initialize(actionCount);
-		auto begin = chrono::steady_clock::now();
-		if (g_turn > 0) {
-			for (int player = ME; player <= BITCH; ++player) {
-				if (State.witches[player].score != ScoreTable[player]) ++TimesScored[player];
-					State.witches[player].timesScored = TimesScored[player];
-			}
-		}
-//		cerr << "I have scored " << State.witches[ME].timesScored << " times, and the opponent " << State.witches[BITCH].timesScored << " times." << endl;
-		ScoreTable[ME] = State.witches[ME].score;
-		ScoreTable[BITCH] = State.witches[BITCH].score;
-		cerr << "turn " << g_turn << endl;
-		State.SetCastValueMultiplier();
-		Setup(State, begin);
-		++g_turn;
-	}
-}
-
+#pragma clang diagnostic pop
